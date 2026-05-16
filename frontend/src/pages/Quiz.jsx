@@ -52,8 +52,13 @@ export default function Quiz() {
     setError('');
     try {
       const res = await getQuiz(quizId);
+      const fetchedQuestions = res.data.questions || [];
+      if (fetchedQuestions.length === 0) {
+        showAlert('Quiz Belum Siap', 'Maaf, belum ada soal yang ditambahkan untuk quiz ini oleh admin.');
+        return;
+      }
       setQuiz(res.data.quiz);
-      setQuestions(res.data.questions || []);
+      setQuestions(fetchedQuestions);
       setAnswers({});
       setDoubtfulAnswers({});
       setCurrentIndex(0);
@@ -130,43 +135,28 @@ export default function Quiz() {
   const CustomModal = () => {
     if (!modal.show) return null;
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-fadeIn">
-        {/* Backdrop with blur */}
-        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={closeModal} />
-        
-        {/* Modal Card */}
-        <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl p-8 animate-slideUp overflow-hidden">
-          {/* Decorative element */}
-          <div className={`absolute top-0 left-0 w-full h-2 ${modal.type === 'confirm' ? 'bg-amber-500' : 'bg-brand-600'}`} />
-          
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-slate-900 mb-2">{modal.title}</h3>
-            <p className="text-sm text-slate-500 leading-relaxed">{modal.message}</p>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-fadeIn" onClick={closeModal} />
+        <div className="relative w-full max-w-sm bg-white rounded-[2rem] shadow-2xl p-8 animate-slideUp overflow-hidden border border-white/20">
+          <div className="mb-8 text-center">
+            <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center ${modal.type === 'confirm' ? 'bg-amber-50 text-amber-500' : 'bg-brand-50 text-brand-600'}`}>
+              {modal.type === 'confirm' ? (
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></svg>
+              ) : (
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></svg>
+              )}
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">{modal.title}</h3>
+            <p className="text-sm text-slate-500 leading-relaxed px-2">{modal.message}</p>
           </div>
-          
           <div className="flex gap-3">
             {modal.type === 'confirm' ? (
               <>
-                <button 
-                  className="flex-1 px-5 py-3 rounded-xl text-sm font-bold text-slate-400 hover:bg-gray-100 transition-all"
-                  onClick={closeModal}
-                >
-                  Batal
-                </button>
-                <button 
-                  className="flex-1 px-5 py-3 rounded-xl text-sm font-bold bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-600/20 transition-all"
-                  onClick={modal.onConfirm}
-                >
-                  Ya, Lanjutkan
-                </button>
+                <button className="flex-1 px-6 py-3.5 rounded-2xl text-sm font-bold text-slate-400 hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100" onClick={closeModal}>Batal</button>
+                <button className="flex-1 px-6 py-3.5 rounded-2xl text-sm font-bold bg-brand-600 text-white hover:bg-brand-700 shadow-xl shadow-brand-600/20 transition-all transform active:scale-95" onClick={modal.onConfirm}>Ya, Lanjutkan</button>
               </>
             ) : (
-              <button 
-                className="w-full px-5 py-3 rounded-xl text-sm font-bold bg-brand-600 text-white hover:bg-brand-700 shadow-lg shadow-brand-600/20 transition-all"
-                onClick={closeModal}
-              >
-                Mengerti
-              </button>
+              <button className="w-full px-6 py-3.5 rounded-2xl text-sm font-bold bg-brand-600 text-white hover:bg-brand-700 shadow-xl shadow-brand-600/20 transition-all transform active:scale-95" onClick={closeModal}>Mengerti</button>
             )}
           </div>
         </div>
@@ -198,7 +188,12 @@ export default function Quiz() {
       <Navbar />
       <div className="max-w-6xl mx-auto px-6 py-4 w-full">
         {error && (
-          <div className="mt-4 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">{error}</div>
+          <div className="mt-4 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 animate-fadeIn">
+            <div className="w-8 h-8 rounded-full bg-white text-rose-500 flex items-center justify-center shrink-0 shadow-sm">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div className="text-sm font-bold text-rose-900">{error}</div>
+          </div>
         )}
 
         {quizzes.length === 0 && !error ? (
@@ -208,41 +203,57 @@ export default function Quiz() {
           </div>
         ) : (
           <div className="flex flex-col gap-4 mt-4">
-            {quizzes.map((q) => (
-              <div
-                key={q.id}
-                className="border border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:shadow-lg hover:border-brand-500 transition-all shadow-sm animate-slideUp"
-                onClick={() => handleSelectQuiz(q.id)}
-              >
-                <div className="relative h-40 flex flex-col justify-between p-7 overflow-hidden"
-                  style={{ background: 'linear-gradient(135deg, #059669 0%, #0d9488 50%, #10b981 100%)' }}
+            {quizzes.map((q, i) => {
+              const gradients = [
+                'linear-gradient(135deg, #059669 0%, #0d9488 50%, #10b981 100%)',
+                'linear-gradient(225deg, #065f46 0%, #059669 50%, #10b981 100%)',
+                'linear-gradient(to right, #047857, #10b981)',
+                'linear-gradient(135deg, #0d9488 0%, #059669 100%)',
+                'linear-gradient(45deg, #065f46 0%, #0d9488 100%)'
+              ];
+              const decorationPos = [
+                '-right-5 -top-5',
+                '-left-5 -bottom-5',
+                '-right-10 -bottom-10',
+                '-left-10 -top-10',
+                'right-1/4 -top-10'
+              ];
+              return (
+                <div
+                  key={q.id}
+                  className="border border-gray-200 rounded-2xl overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:shadow-lg hover:border-brand-500 transition-all shadow-sm animate-slideUp"
+                  onClick={() => handleSelectQuiz(q.id)}
                 >
-                  <div className="absolute -right-5 -top-5 w-44 h-44 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
-                  <button
-                    className="absolute top-3 right-3 p-1.5 rounded text-white/70 hover:text-white hover:bg-white/20 transition-colors"
-                    onClick={(e) => e.stopPropagation()}
+                  <div className="relative h-40 flex flex-col justify-between p-7 overflow-hidden"
+                    style={{ background: gradients[i % gradients.length] }}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
-                    </svg>
-                  </button>
-                  <h3 className="text-xl font-bold text-white max-w-[65%] leading-snug" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                    {q.name}
-                  </h3>
-                  <div className="flex items-center gap-2 text-white/85 text-xs font-medium">
-                    <span className="flex items-center justify-center w-5 h-5 rounded bg-white/20">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                        <polyline points="14 2 14 8 20 8" />
-                        <line x1="16" y1="13" x2="8" y2="13" />
-                        <line x1="16" y1="17" x2="8" y2="17" />
+                    <div className={`absolute ${decorationPos[i % decorationPos.length]} w-44 h-44 rounded-full`} style={{ background: 'rgba(255,255,255,0.06)' }} />
+                    <button
+                      className="absolute top-3 right-3 p-1.5 rounded text-white/70 hover:text-white hover:bg-white/20 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
                       </svg>
-                    </span>
-                    {q.question_count} Soal
+                    </button>
+                    <h3 className="text-xl font-bold text-white max-w-[65%] leading-snug" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                      {q.name}
+                    </h3>
+                    <div className="flex items-center gap-2 text-white/85 text-xs font-medium">
+                      <span className="flex items-center justify-center w-5 h-5 rounded bg-white/20">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                        </svg>
+                      </span>
+                      {q.question_count || 0} Soal
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

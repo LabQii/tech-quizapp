@@ -43,7 +43,7 @@ export default function Navbar() {
           Technical Test
         </Link>
 
-        {/* Desktop Menu */}
+        
         <div className="hidden md:flex items-center gap-1.5">
           {role === 'admin' && (
             <Link to="/admin" className={linkClass('/admin')}>Admin</Link>
@@ -77,7 +77,7 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Mobile Toggle */}
+        
         <div className="flex items-center gap-3 md:hidden">
           {user && (
             <div className="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white text-sm font-bold ring-2 ring-white">
@@ -96,7 +96,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      
       {isOpen && (
         <div className="md:hidden bg-white border-b border-gray-100 p-4 flex flex-col gap-2 animate-fadeIn">
           {role === 'admin' && (

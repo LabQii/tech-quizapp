@@ -1,28 +1,18 @@
-/* ===== GOOGLE FONTS ===== */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
-@tailwind utilities;
-
-/* ===== BASE OVERRIDES ===== */
-* {
+@tailwind utilities;* {
   box-sizing: border-box;
 }
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-}
-
-/* ===== SCROLLBAR ===== */
-::-webkit-scrollbar { width: 5px; }
+}::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: #f8fafc; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-/* ===== ANIMATIONS ===== */
-@keyframes slideUp {
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }@keyframes slideUp {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
@@ -35,32 +25,26 @@ body {
   to   { opacity: 1; transform: translateX(0); }
 }
 
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
 .animate-slideUp { animation: slideUp 0.3s ease forwards; }
 .animate-fadeIn  { animation: fadeIn 0.25s ease forwards; }
 .animate-slideInRight { animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-
-/* ===== CHART.JS CANVAS ===== */
-canvas { max-width: 100%; }
-
-
-/* ===== QUIZ PROGRESS BAR ===== */
-.progress-fill {
+.animate-shake { animation: shake 0.3s ease-in-out; }canvas { max-width: 100%; }.progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #059669, #10b981);
   border-radius: 2px;
   transition: width 0.4s ease;
-}
-
-/* ===== RESULT SCORE TOP BORDER ===== */
-.result-hero::before {
+}.result-hero::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 3px;
   background: linear-gradient(90deg, #059669, #10b981);
-}
-
-/* ===== SELECT OPTION STYLE (native) ===== */
-select.form-select {
+}select.form-select {
   appearance: auto;
 }

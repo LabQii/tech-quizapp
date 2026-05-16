@@ -24,29 +24,29 @@ API.interceptors.response.use(
   }
 );
 
-// Auth
 export const login = (data) => API.post('/login', data);
 export const register = (data) => API.post('/register', data);
 export const getMe = () => API.get('/me');
 
-// Quiz
-export const getQuizzes = () => API.get('/quizzes');
+export const getQuizzes = (all = false) => API.get(all ? '/quizzes?all=true' : '/quizzes');
 export const getQuiz = (id) => API.get(`/quiz/${id}`);
 export const createQuiz = (data) => API.post('/quiz', data);
 export const updateQuiz = (id, data) => API.put(`/quiz/${id}`, data);
+export const archiveQuiz = (id) => API.put(`/quiz/${id}/archive`);
 export const deleteQuiz = (id) => API.delete(`/quiz/${id}`);
 
-// Questions
 export const createQuestion = (data) => API.post('/question', data);
 export const updateQuestion = (id, data) => API.put(`/question/${id}`, data);
 export const deleteQuestion = (id) => API.delete(`/question/${id}`);
 
-// Submit & Result
 export const submitQuiz = (data) => API.post('/submit', data);
 export const getResult = (id) => API.get(`/result/${id}`);
 export const getHistory = (email) => API.get(`/history?email=${email}`);
 
-// PDF Export
+export const getAdminStats = () => API.get('/stats');
+export const getAllAttempts = () => API.get('/all-attempts');
+export const getAllUsers = () => API.get('/users');
+
 export const exportPdf = (attemptId) =>
   API.post('/export-pdf', { attempt_id: attemptId }, { responseType: 'blob' });
 
