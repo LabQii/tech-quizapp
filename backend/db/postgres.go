@@ -68,12 +68,18 @@ func Migrate() {
 			is_correct  BOOLEAN NOT NULL DEFAULT FALSE
 		)`,
 		`CREATE TABLE IF NOT EXISTS users (
-			id       SERIAL PRIMARY KEY,
-			username TEXT UNIQUE NOT NULL,
-			password TEXT NOT NULL,
-			role     TEXT NOT NULL DEFAULT 'user'
+			id        SERIAL PRIMARY KEY,
+			username  TEXT UNIQUE NOT NULL,
+			password  TEXT NOT NULL,
+			full_name TEXT NOT NULL DEFAULT '',
+			email     TEXT UNIQUE NOT NULL DEFAULT '',
+			role      TEXT NOT NULL DEFAULT 'user'
 		)`,
 	}
+
+	// Migrasi tambahan untuk kolom baru jika tabel sudah ada
+	DB.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name TEXT NOT NULL DEFAULT ''")
+	DB.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT UNIQUE NOT NULL DEFAULT ''")
 
 	for _, q := range queries {
 		if _, err := DB.Exec(q); err != nil {

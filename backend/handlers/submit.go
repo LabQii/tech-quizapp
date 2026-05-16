@@ -126,27 +126,36 @@ func generateInsights(percentage float64, answers []models.AnswerResult) []strin
 			correct++
 		}
 	}
-	total := len(answers)
-	wrong := total - correct
-
-	insights = append(insights, fmt.Sprintf("Kamu menjawab benar %d dari %d soal.", correct, total))
 
 	if percentage == 100 {
-		insights = append(insights, "Sempurna! Kamu menjawab semua soal dengan benar.")
+		insights = append(insights, "Luar biasa! Anda berhasil menjawab seluruh pertanyaan dengan sempurna. Pemahaman materi Anda sangat matang.")
 	} else if percentage >= 80 {
-		insights = append(insights, "Hasil yang sangat baik! Tingkatkan terus kemampuanmu.")
-	} else if percentage >= 50 {
-		insights = append(insights, fmt.Sprintf("Masih ada %d soal yang perlu dipelajari lagi.", wrong))
+		insights = append(insights, fmt.Sprintf("Hasil yang sangat impresif. Anda menguasai sebagian besar materi dengan akurasi %d%%.", int(percentage)))
+	} else if percentage >= 60 {
+		insights = append(insights, "Performa yang cukup baik. Anda memiliki pemahaman dasar yang kuat, namun masih ada ruang untuk penguatan di beberapa topik.")
 	} else {
-		insights = append(insights, "Jangan menyerah! Coba pelajari materi dan ulangi quiz ini.")
+		insights = append(insights, "Jangan patah semangat. Quiz ini menunjukkan ada beberapa konsep fundamental yang perlu ditinjau kembali agar pemahaman Anda lebih solid.")
 	}
 
 	wrongCount := 0
+	var topicsToReview []string
 	for _, a := range answers {
 		if !a.IsCorrect && wrongCount < 2 {
-			insights = append(insights, fmt.Sprintf("Soal: \"%s\" — jawaban yang benar adalah %s.", a.QuestionText, a.CorrectAnswer))
+			topicsToReview = append(topicsToReview, a.QuestionText)
 			wrongCount++
 		}
+	}
+
+	if len(topicsToReview) > 0 {
+		if percentage >= 80 {
+			insights = append(insights, fmt.Sprintf("Untuk mencapai kesempurnaan, Anda bisa meninjau kembali detail pada topik: %s.", topicsToReview[0]))
+		} else {
+			insights = append(insights, "Fokuskan pembelajaran Anda pada area yang masih keliru, terutama mengenai konsep yang ditanyakan pada poin rincian jawaban di bawah.")
+		}
+	}
+
+	if percentage < 60 {
+		insights = append(insights, "Kami menyarankan Anda untuk membaca kembali materi modul terkait sebelum mencoba simulasi quiz ini kembali.")
 	}
 
 	return insights

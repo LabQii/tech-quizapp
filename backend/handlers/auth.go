@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"quizapp/db"
 	"quizapp/models"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,18 +23,18 @@ func Login(c *gin.Context) {
 
 	var user models.User
 	err := db.DB.QueryRow(
-		"SELECT id, username, password, role FROM users WHERE username = $1",
-		req.Username,
-	).Scan(&user.ID, &user.Username, &user.Password, &user.Role)
+		"SELECT id, username, password, full_name, email, role FROM users WHERE email = $1 OR username = $1",
+		req.Identifier,
+	).Scan(&user.ID, &user.Username, &user.Password, &user.FullName, &user.Email, &user.Role)
 
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Email/Username atau password salah"})
 		return
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Email/Username atau password salah"})
 		return
 	}
 
@@ -60,7 +62,7 @@ func Login(c *gin.Context) {
 }
 
 func Register(c *gin.Context) {
-	var req models.LoginRequest // Menggunakan struct yang sama untuk registrasi
+	var req models.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -69,12 +71,21 @@ func Register(c *gin.Context) {
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 
 	_, err := db.DB.Exec(
-		"INSERT INTO users (username, password, role) VALUES ($1, $2, 'user')",
-		req.Username, string(hashedPassword),
+		"INSERT INTO users (username, password, full_name, email, role) VALUES ($1, $2, $3, $4, 'user')",
+		req.Username, string(hashedPassword), req.FullName, req.Email,
 	)
 
 	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Username already exists"})
+		if strings.Contains(err.Error(), "unique constraint") || strings.Contains(err.Error(), "duplicate key") {
+			if strings.Contains(err.Error(), "email") {
+				c.JSON(http.StatusConflict, gin.H{"error": "Email sudah terdaftar"})
+			} else {
+				c.JSON(http.StatusConflict, gin.H{"error": "Username sudah terdaftar"})
+			}
+		} else {
+			log.Println("Registration error:", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan data ke database"})
+		}
 		return
 	}
 
@@ -83,18 +94,13 @@ func Register(c *gin.Context) {
 
 func Me(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	role, _ := c.Get("role")
 
-	var username string
-	err := db.DB.QueryRow("SELECT username FROM users WHERE id = $1", userID).Scan(&username)
+	var user models.User
+	err := db.DB.QueryRow("SELECT id, username, full_name, email, role FROM users WHERE id = $1", userID).Scan(&user.ID, &user.Username, &user.FullName, &user.Email, &user.Role)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"id":       userID,
-		"username": username,
-		"role":     role,
-	})
+	c.JSON(http.StatusOK, user)
 }

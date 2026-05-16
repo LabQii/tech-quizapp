@@ -138,9 +138,9 @@ func seedUsers() {
 	hashedUser, _ := bcrypt.GenerateFromPassword([]byte("user123"), bcrypt.DefaultCost)
 
 	_, err := DB.Exec(
-		`INSERT INTO users (username, password, role) VALUES 
-		 ($1, $2, 'admin'),
-		 ($3, $4, 'user')`,
+		`INSERT INTO users (username, password, full_name, email, role) VALUES 
+		 ($1, $2, 'Administrator', 'admin@example.com', 'admin'),
+		 ($3, $4, 'Regular User', 'user@example.com', 'user')`,
 		"admin", string(hashedAdmin), "user", string(hashedUser),
 	)
 	if err != nil {

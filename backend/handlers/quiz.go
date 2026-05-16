@@ -9,10 +9,37 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func GetQuizzes(c *gin.Context) {
+	rows, err := db.DB.Query(
+		`SELECT q.id, q.name, q.created_at, COUNT(quest.id) as question_count 
+		 FROM quizzes q 
+		 LEFT JOIN questions quest ON q.id = quest.quiz_id 
+		 GROUP BY q.id 
+		 ORDER BY q.id`,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch quizzes"})
+		return
+	}
+	defer rows.Close()
+
+	var quizzes []models.Quiz
+	for rows.Next() {
+		var q models.Quiz
+		if err := rows.Scan(&q.ID, &q.Name, &q.CreatedAt, &q.QuestionCount); err != nil {
+			continue
+		}
+		quizzes = append(quizzes, q)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"quizzes": quizzes})
+}
+
 func GetQuiz(c *gin.Context) {
+	id := c.Param("id")
 	var quiz models.Quiz
 	err := db.DB.QueryRow(
-		`SELECT id, name, created_at FROM quizzes ORDER BY id LIMIT 1`,
+		`SELECT id, name, created_at FROM quizzes WHERE id = $1`, id,
 	).Scan(&quiz.ID, &quiz.Name, &quiz.CreatedAt)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Quiz not found"})

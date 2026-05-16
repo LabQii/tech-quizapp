@@ -32,15 +32,17 @@ func main() {
 
 	api := r.Group("/api")
 	{
+		// Public Routes
 		api.POST("/login", handlers.Login)
 		api.POST("/register", handlers.Register)
+		api.GET("/quizzes", handlers.GetQuizzes)
+		api.GET("/quiz/:id", handlers.GetQuiz)
 
 		// Public/User Routes (Harus Login)
 		auth := api.Group("/")
 		auth.Use(middleware.AuthMiddleware())
 		{
 			auth.GET("/me", handlers.Me)
-			auth.GET("/quiz", handlers.GetQuiz)
 			auth.POST("/submit", handlers.SubmitQuiz)
 			auth.GET("/result/:id", handlers.GetResult)
 			auth.GET("/history", handlers.GetHistory)

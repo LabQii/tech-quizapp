@@ -3,9 +3,10 @@ package models
 import "time"
 
 type Quiz struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
+	ID            int       `json:"id"`
+	Name          string    `json:"name"`
+	QuestionCount int       `json:"question_count,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 type Question struct {
