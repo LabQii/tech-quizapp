@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"fmt"
-	"math"
 	"net/http"
 	"quizapp/db"
 	"quizapp/models"
@@ -143,36 +142,41 @@ func ExportPDF(c *gin.Context) {
 	pdf.Cell(0, 8, "Ringkasan Hasil")
 	pdf.Ln(10)
 
-	boxW := 52.0
-	boxH := 30.0
+	boxW := 31.0
+	boxH := 28.0
 	boxY := pdf.GetY()
 	boxX := 20.0
-	gap := 7.0
+	gap := 4.0
 
 	boxes := []struct {
 		label string
 		value string
 		hex   string
+		bg    string
 	}{
-		{"Skor Akhir", fmt.Sprintf("%d / %d", attempt.Score, attempt.MaxScore), "#059669"},
-		{"Persentase", fmt.Sprintf("%.0f%%", attempt.Percentage), "#0d9488"},
-		{"Kategori", categoryLabel(attempt.Category), "#0891b2"},
+		{"Skor Akhir", fmt.Sprintf("%d / %d", attempt.Score, attempt.MaxScore), "#059669", "#F0FDF4"},
+		{"Persentase", fmt.Sprintf("%.0f%%", attempt.Percentage), "#0d9488", "#F0FDFA"},
+		{"Benar", fmt.Sprintf("%d", correct), "#10b981", "#ECFDF5"},
+		{"Salah", fmt.Sprintf("%d", wrong), "#ef4444", "#FEF2F2"},
+		{"Kategori", categoryLabel(attempt.Category), "#0891b2", "#F0F9FF"},
 	}
 
 	for _, box := range boxes {
 		br, bg, bb := hexToRGB(box.hex)
+		bgr, bgg, bgb := hexToRGB(box.bg)
+		
 		pdf.SetDrawColor(br, bg, bb)
-		pdf.SetFillColor(240, 253, 244)
+		pdf.SetFillColor(bgr, bgg, bgb)
 		pdf.SetLineWidth(0.4)
-		pdf.Rect(boxX, boxY, boxW, boxH, "DF")
+		pdf.RoundedRect(boxX, boxY, boxW, boxH, 3, "1234", "DF")
 		pdf.SetLineWidth(0.2)
 
-		pdf.SetFont("Helvetica", "B", 8)
+		pdf.SetFont("Helvetica", "B", 7)
 		pdf.SetTextColor(100, 116, 139)
 		pdf.SetXY(boxX, boxY+6)
 		pdf.CellFormat(boxW, 5, box.label, "", 0, "C", false, 0, "")
 
-		pdf.SetFont("Helvetica", "B", 16)
+		pdf.SetFont("Helvetica", "B", 13)
 		pdf.SetTextColor(br, bg, bb)
 		pdf.SetXY(boxX, boxY+14)
 		pdf.CellFormat(boxW, 8, box.value, "", 0, "C", false, 0, "")
@@ -186,78 +190,114 @@ func ExportPDF(c *gin.Context) {
 	pdf.Cell(0, 8, "Visualisasi Performa")
 	pdf.Ln(10)
 
-	chartY := pdf.GetY()
-	chartX := 20.0
-	maxBarW := 105.0
-	barH := 9.0
-	barGap := 6.0
-
-	chartData := []struct {
-		label string
-		value float64
-		max   float64
-		hex   string
-	}{
-		{"Jawaban Benar", float64(correct), float64(len(attempt.Answers)), "#10b981"},
-		{"Jawaban Salah", float64(wrong), float64(len(attempt.Answers)), "#ef4444"},
-		{"Efisiensi Skor", float64(attempt.Score), float64(attempt.MaxScore), "#059669"},
+	chartHeight := 40.0
+	chartBaseY := pdf.GetY() + chartHeight + 10.0
+	chartStartX := 22.0
+	chartWidth := 155.0
+	
+	barWidth := 4.5
+	itemSpace := 15.5
+	
+	pdf.SetFont("Helvetica", "", 9)
+	pdf.SetTextColor(148, 163, 184)
+	pdf.SetXY(20, pdf.GetY())
+	pdf.CellFormat(pageW, 5, "Skor per Soal", "", 0, "C", false, 0, "")
+	
+	pdf.SetDrawColor(241, 245, 249)
+	pdf.SetLineWidth(0.2)
+	pdf.SetFont("Helvetica", "", 8)
+	for i := 0; i <= 2; i++ {
+		val := i * 5
+		y := chartBaseY - (float64(val) / 10.0 * chartHeight)
+		pdf.Line(chartStartX-2, y, chartStartX+chartWidth, y)
+		pdf.SetXY(chartStartX-10, y-2)
+		pdf.CellFormat(8, 4, fmt.Sprintf("%d", val), "", 0, "R", false, 0, "")
 	}
 
-	for _, cd := range chartData {
-		ratio := 0.0
-		if cd.max > 0 {
-			ratio = cd.value / cd.max
+	for i, ans := range attempt.Answers {
+		if i >= 10 { break } 
+		x := chartStartX + (float64(i) * itemSpace) + 1.5
+		
+		maxH := (float64(ans.Point) / 10.0) * chartHeight
+		pdf.SetFillColor(236, 253, 245)
+		pdf.RoundedRect(x + barWidth + 0.5, chartBaseY - maxH, barWidth, maxH, 1.2, "1234", "F")
+		
+		if ans.IsCorrect {
+			earnedH := (float64(ans.EarnedPoint) / 10.0) * chartHeight
+			r, g, b := hexToRGB("#10b981")
+			pdf.SetFillColor(r, g, b)
+			pdf.RoundedRect(x, chartBaseY - earnedH, barWidth, earnedH, 1.2, "1234", "F")
 		}
-		fillW := maxBarW * ratio
-
-		pdf.SetFont("Helvetica", "", 10)
-		pdf.SetTextColor(71, 85, 105)
-		pdf.SetXY(chartX, chartY)
-		pdf.CellFormat(45, barH, cd.label, "", 0, "L", false, 0, "")
-
-		pdf.SetFillColor(241, 245, 249)
-		pdf.Rect(chartX+45, chartY+1, maxBarW, barH-2, "F")
-
-		if fillW > 0 {
-			fr, fg, fb := hexToRGB(cd.hex)
-			pdf.SetFillColor(fr, fg, fb)
-			pdf.Rect(chartX+45, chartY+1, fillW, barH-2, "F")
-		}
-
-		pct := math.Round(ratio * 100)
-		pdf.SetFont("Helvetica", "B", 9)
-		pdf.SetTextColor(30, 41, 59)
-		pdf.SetXY(chartX+45+maxBarW+4, chartY)
-		pdf.CellFormat(20, barH, fmt.Sprintf("%.0f%%", pct), "", 0, "L", false, 0, "")
-
-		chartY += barH + barGap
+		
+		pdf.SetFont("Helvetica", "", 7)
+		pdf.SetTextColor(148, 163, 184)
+		pdf.SetXY(x - 1, chartBaseY + 2)
+		pdf.CellFormat(barWidth*2 + 1, 5, fmt.Sprintf("Soal %d", i+1), "", 0, "C", false, 0, "")
 	}
-	pdf.Ln(12)
+	
+	pdf.SetXY(20, chartBaseY + 12)
+	legendX := 65.0
+	legendY := pdf.GetY()
+	
+	r, g, b = hexToRGB("#10b981")
+	pdf.SetFillColor(r, g, b)
+	pdf.RoundedRect(legendX, legendY, 15, 4, 1, "1234", "F")
+	pdf.SetXY(legendX + 17, legendY - 1)
+	pdf.SetFont("Helvetica", "", 8)
+	pdf.SetTextColor(71, 85, 105)
+	pdf.Cell(30, 6, "Poin Diraih")
+	
+	pdf.SetFillColor(236, 253, 245)
+	pdf.RoundedRect(legendX + 45, legendY, 15, 4, 1, "1234", "F")
+	pdf.SetXY(legendX + 62, legendY - 1)
+	pdf.Cell(30, 6, "Poin Maksimal")
+
+	pdf.SetY(chartBaseY + 25)
+	pdf.Ln(10)
 
 	pdf.SetFont("Helvetica", "B", 12)
 	pdf.SetTextColor(30, 41, 59)
 	pdf.Cell(0, 8, "Rincian Jawaban")
 	pdf.Ln(10)
 
-	colWidths := []float64{10, 85, 25, 25, 25}
+	colWidths := []float64{10, 80, 26, 26, 28}
 	headers := []string{"No", "Pertanyaan", "Jawaban Anda", "Kunci Jawaban", "Status"}
 
 	pdf.SetFillColor(5, 150, 105)
 	pdf.SetTextColor(255, 255, 255)
 	pdf.SetFont("Helvetica", "B", 9)
 	for i, h := range headers {
-		pdf.CellFormat(colWidths[i], 8, h, "1", 0, "C", true, 0, "")
+		pdf.CellFormat(colWidths[i], 10, h, "1", 0, "C", true, 0, "")
 	}
 	pdf.Ln(-1)
 
 	pdf.SetFont("Helvetica", "", 9)
 	for i, ans := range attempt.Answers {
+		lines := pdf.SplitLines([]byte(ans.QuestionText), colWidths[1]-4)
+		rowH := float64(len(lines)) * 5.0
+		if rowH < 10 { rowH = 10 }
+
 		if i%2 == 0 {
 			pdf.SetFillColor(248, 250, 252)
 		} else {
 			pdf.SetFillColor(255, 255, 255)
 		}
 
+		curX, curY := pdf.GetXY()
+		
+		pdf.SetTextColor(30, 41, 59)
+		pdf.CellFormat(colWidths[0], rowH, fmt.Sprintf("%d", i+1), "1", 0, "C", true, 0, "")
+		
+		pdf.SetXY(curX + colWidths[0], curY)
+		pdf.MultiCell(colWidths[1], 5, ans.QuestionText, "1", "L", true)
+		
+		pdf.SetXY(curX + colWidths[0] + colWidths[1], curY)
+		
+		pdf.CellFormat(colWidths[2], rowH, ans.UserAnswer, "1", 0, "C", true, 0, "")
+		
+		pdf.SetTextColor(5, 150, 105)
+		pdf.CellFormat(colWidths[3], rowH, ans.CorrectAnswer, "1", 0, "C", true, 0, "")
+		
 		status := "Salah"
 		if ans.IsCorrect {
 			status = "Benar"
@@ -265,31 +305,15 @@ func ExportPDF(c *gin.Context) {
 		} else {
 			pdf.SetTextColor(220, 38, 38)
 		}
-
-		qText := ans.QuestionText
-		if len(qText) > 60 {
-			qText = qText[:57] + "..."
-		}
-
-		pdf.CellFormat(colWidths[0], 8, fmt.Sprintf("%d", i+1), "1", 0, "C", true, 0, "")
-		pdf.SetTextColor(30, 41, 59)
-		pdf.CellFormat(colWidths[1], 8, qText, "1", 0, "L", true, 0, "")
-		pdf.CellFormat(colWidths[2], 8, ans.UserAnswer, "1", 0, "C", true, 0, "")
-		pdf.SetTextColor(5, 150, 105)
-		pdf.CellFormat(colWidths[3], 8, ans.CorrectAnswer, "1", 0, "C", true, 0, "")
+		pdf.CellFormat(colWidths[4], rowH, status, "1", 0, "C", true, 0, "")
 		
-		if ans.IsCorrect {
-			pdf.SetTextColor(5, 150, 105)
-		} else {
-			pdf.SetTextColor(220, 38, 38)
-		}
-		pdf.CellFormat(colWidths[4], 8, status, "1", 0, "C", true, 0, "")
-		pdf.Ln(-1)
+		pdf.Ln(rowH)
 
-		if pdf.GetY() > 260 {
+		if pdf.GetY() > 250 {
 			pdf.AddPage()
 		}
 	}
+	pdf.Ln(10)
 	pdf.Ln(10)
 
 	if len(attempt.Insights) > 0 {

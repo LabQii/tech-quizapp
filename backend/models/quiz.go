@@ -5,6 +5,7 @@ import "time"
 type Quiz struct {
 	ID            int       `json:"id"`
 	Name          string    `json:"name"`
+	IsArchived    bool      `json:"is_archived"`
 	QuestionCount int       `json:"question_count,omitempty"`
 	CreatedAt     time.Time `json:"created_at"`
 }
@@ -14,6 +15,6 @@ type Question struct {
 	QuizID        int               `json:"quiz_id"`
 	Text          string            `json:"text"`
 	Options       map[string]string `json:"options"`
-	CorrectAnswer string            `json:"-"`
+	CorrectAnswer string            `json:"correct_answer"`
 	Point         int               `json:"point"`
 }

@@ -32,16 +32,14 @@ func main() {
 
 	api := r.Group("/api")
 	{
-		// Public Routes
 		api.POST("/login", handlers.Login)
 		api.POST("/register", handlers.Register)
-		api.GET("/quizzes", handlers.GetQuizzes)
-		api.GET("/quiz/:id", handlers.GetQuiz)
 
-		// Public/User Routes (Harus Login)
-		auth := api.Group("/")
+		auth := api.Group("")
 		auth.Use(middleware.AuthMiddleware())
 		{
+			auth.GET("/quizzes", handlers.GetQuizzes)
+			auth.GET("/quiz/:id", handlers.GetQuiz)
 			auth.GET("/me", handlers.Me)
 			auth.POST("/submit", handlers.SubmitQuiz)
 			auth.GET("/result/:id", handlers.GetResult)
@@ -49,17 +47,21 @@ func main() {
 			auth.POST("/export-pdf", handlers.ExportPDF)
 		}
 
-		// Admin Routes (Harus Admin)
-		admin := auth.Group("/")
+		admin := auth.Group("")
 		admin.Use(middleware.AdminMiddleware())
 		{
 			admin.POST("/quiz", handlers.CreateQuiz)
 			admin.PUT("/quiz/:id", handlers.UpdateQuiz)
+			admin.PUT("/quiz/:id/archive", handlers.ToggleArchive)
 			admin.DELETE("/quiz/:id", handlers.DeleteQuiz)
-			
+
 			admin.POST("/question", handlers.CreateQuestion)
 			admin.PUT("/question/:id", handlers.UpdateQuestion)
 			admin.DELETE("/question/:id", handlers.DeleteQuestion)
+
+			admin.GET("/stats", handlers.GetDashboardStats)
+			admin.GET("/all-attempts", handlers.GetAllAttempts)
+			admin.GET("/users", handlers.GetAllUsers)
 		}
 	}
 

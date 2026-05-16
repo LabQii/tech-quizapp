@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"quizapp/db"
 	"quizapp/models"
@@ -10,13 +11,16 @@ import (
 )
 
 func GetQuizzes(c *gin.Context) {
-	rows, err := db.DB.Query(
-		`SELECT q.id, q.name, q.created_at, COUNT(quest.id) as question_count 
-		 FROM quizzes q 
-		 LEFT JOIN questions quest ON q.id = quest.quiz_id 
-		 GROUP BY q.id 
-		 ORDER BY q.id`,
-	)
+	role, _ := c.Get("role")
+	roleStr, _ := role.(string)
+
+	query := `SELECT q.id, q.name, q.is_archived, q.created_at, COUNT(quest.id) as question_count 
+			 FROM quizzes q 
+			 LEFT JOIN questions quest ON q.id = quest.quiz_id 
+			 GROUP BY q.id 
+			 ORDER BY q.id`
+
+	rows, err := db.DB.Query(query)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch quizzes"})
 		return
@@ -26,13 +30,30 @@ func GetQuizzes(c *gin.Context) {
 	var quizzes []models.Quiz
 	for rows.Next() {
 		var q models.Quiz
-		if err := rows.Scan(&q.ID, &q.Name, &q.CreatedAt, &q.QuestionCount); err != nil {
+		if err := rows.Scan(&q.ID, &q.Name, &q.IsArchived, &q.CreatedAt, &q.QuestionCount); err != nil {
 			continue
+		}
+		showAll := c.Query("all") == "true"
+		if q.IsArchived {
+			if roleStr != "admin" || !showAll {
+				continue
+			}
 		}
 		quizzes = append(quizzes, q)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"quizzes": quizzes})
+}
+
+func ToggleArchive(c *gin.Context) {
+	id := c.Param("id")
+	_, err := db.DB.Exec("UPDATE quizzes SET is_archived = CASE WHEN is_archived IS TRUE THEN FALSE ELSE TRUE END WHERE id = $1", id)
+	if err != nil {
+		fmt.Printf("Error toggling archive for quiz %s: %v\n", id, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Gagal di database: %v", err)})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Archive status updated"})
 }
 
 func GetQuiz(c *gin.Context) {
@@ -46,8 +67,10 @@ func GetQuiz(c *gin.Context) {
 		return
 	}
 
+	role, _ := c.Get("role")
+
 	rows, err := db.DB.Query(
-		`SELECT id, quiz_id, text, options, point FROM questions WHERE quiz_id = $1 ORDER BY id`,
+		`SELECT id, quiz_id, text, options, correct_answer, point FROM questions WHERE quiz_id = $1 ORDER BY id`,
 		quiz.ID,
 	)
 	if err != nil {
@@ -60,12 +83,17 @@ func GetQuiz(c *gin.Context) {
 	for rows.Next() {
 		var q models.Question
 		var optionsRaw []byte
-		if err := rows.Scan(&q.ID, &q.QuizID, &q.Text, &optionsRaw, &q.Point); err != nil {
+		if err := rows.Scan(&q.ID, &q.QuizID, &q.Text, &optionsRaw, &q.CorrectAnswer, &q.Point); err != nil {
 			continue
 		}
 		if err := json.Unmarshal(optionsRaw, &q.Options); err != nil {
 			continue
 		}
+
+		if role != "admin" {
+			q.CorrectAnswer = ""
+		}
+
 		questions = append(questions, q)
 	}
 
