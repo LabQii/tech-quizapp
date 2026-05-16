@@ -13,7 +13,7 @@ var DB *sql.DB
 
 func Connect() {
 	dsn := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable TimeZone=Asia/Jakarta",
 		os.Getenv("DB_HOST"),
 		os.Getenv("DB_PORT"),
 		os.Getenv("DB_USER"),
@@ -40,7 +40,7 @@ func Migrate() {
 			id          SERIAL PRIMARY KEY,
 			name        TEXT NOT NULL,
 			is_archived BOOLEAN DEFAULT FALSE,
-			created_at  TIMESTAMP DEFAULT NOW()
+			created_at  TIMESTAMPTZ DEFAULT NOW()
 		)`,
 		`CREATE TABLE IF NOT EXISTS questions (
 			id             SERIAL PRIMARY KEY,
@@ -59,7 +59,7 @@ func Migrate() {
 			max_score  INT NOT NULL DEFAULT 0,
 			percentage FLOAT NOT NULL DEFAULT 0,
 			category   TEXT NOT NULL DEFAULT '',
-			created_at TIMESTAMP DEFAULT NOW()
+			created_at TIMESTAMPTZ DEFAULT NOW()
 		)`,
 		`CREATE TABLE IF NOT EXISTS answers (
 			id          SERIAL PRIMARY KEY,

@@ -104,7 +104,7 @@ func ExportPDF(c *gin.Context) {
 	pdf.Cell(0, 6, "Laporan Evaluasi Kompetensi")
 
 	pdf.SetFont("Helvetica", "", 9)
-	dateStr := attempt.CreatedAt.UTC().Format("02 January 2006, 15:04") + " WIB"
+	dateStr := attempt.CreatedAt.Local().Format("02 January 2006, 15:04") + " WIB"
 	pdf.SetXY(20, 20)
 	pdf.CellFormat(pageW, 6, dateStr, "", 0, "R", false, 0, "")
 	pdf.Ln(22)

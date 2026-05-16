@@ -6,6 +6,7 @@ import (
 	"quizapp/db"
 	"quizapp/handlers"
 	"quizapp/middleware"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -15,6 +16,11 @@ import (
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using system environment")
+	}
+
+	loc, err := time.LoadLocation("Asia/Jakarta")
+	if err == nil {
+		time.Local = loc
 	}
 
 	db.Connect()
